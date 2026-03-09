@@ -8,9 +8,19 @@ from fastapi.staticfiles import StaticFiles
 from google.cloud import translate_v3 as translate
 from pypdf import PdfReader, PdfWriter
 
+import sys
+
+def get_base_path():
+    """Retorna o caminho base correto para desenvolvimento ou executável (PyInstaller)"""
+    if getattr(sys, 'frozen', False):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.abspath(__file__))
+
+BASE_PATH = get_base_path()
+
 app = FastAPI(title="Servsolda PDF Translator")
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_PATH, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(BASE_PATH, "templates"))
 
 # Limite máximo de páginas por chamada à API do Google
 MAX_PAGES_PER_CHUNK = 20
