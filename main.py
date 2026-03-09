@@ -71,6 +71,12 @@ async def get_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    from fastapi.responses import FileResponse
+    return FileResponse(os.path.join(BASE_PATH, "static", "pwa-icon.png"))
+
+
 @app.post("/translate")
 async def translate_pdf_endpoint(file: UploadFile = File(...)):
     """
