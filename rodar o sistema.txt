@@ -1,0 +1,22 @@
+Configurar a Chave do Google Cloud (Obrigatório)
+O sistema precisa de uma Conta de Serviço (Service Account) do Google Cloud com a permissão "Cloud Translation API" ativada. Você deve baixar o arquivo .json com a chave privada dessa conta.
+
+No seu terminal, aponte para o local onde você salvou esse arquivo JSON:
+
+Se estiver usando CMD (Prompt de Comando):
+
+cmd
+set GOOGLE_APPLICATION_CREDENTIALS="C:\caminho\para\seu-arquivo-de-chave.json"
+Se estiver usando PowerShell:
+
+powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS="C:\caminho\para\seu-arquivo-de-chave.json"
+(Substitua o caminho acima pelo local real do seu arquivo JSON)
+
+Dica: Se a sua conta tiver um projeto diferente do padrão da chave, defina também a variável do projeto: set GOOGLE_CLOUD_PROJECT="seu-id-do-projeto"
+
+2️⃣ Iniciar o Servidor Back-end (Antigravity/FastAPI)
+Com as dependências instaladas (o comando pip install -r requirements.txt que eu rodei) e a variável configurada na mesma janela de terminal, inicie o servidor rodando o comando abaixo dentro da pasta c:\Antigravity\tradutor_pdf:
+
+cd c:\Antigravity\tradutor_pdf
+uvicorn main:app --reload
