@@ -1,9 +1,9 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open('servsolda-v2').then((cache) => cache.addAll([
+    caches.open('servsolda-v3').then((cache) => cache.addAll([
       '/',
-      '/static/pwa-icon.png',
-      '/static/manifest.webmanifest'
+      '/static/pwa-icon.png?v=2',
+      '/static/manifest.json?v=2'
     ])),
   );
 });
