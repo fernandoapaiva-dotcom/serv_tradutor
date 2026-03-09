@@ -28,18 +28,41 @@ MAX_PAGES_PER_CHUNK = 20
 
 def get_gcp_project_id():
     """
-    Obtém o Project ID das Application Default Credentials (ADC).
-    Configure com: gcloud auth application-default login
+    Obtém o Project ID. No Render/Cloud, tenta carregar de uma variável de ambiente JSON.
+    Localmente, usa as Application Default Credentials (ADC).
     """
+    # 1. Tenta carregar de uma variável com o conteúdo do JSON (Útil para Render/Railway)
+    service_account_json = os.environ.get("GCP_SERVICE_ACCOUNT_JSON")
+    if service_account_json:
+        try:
+            import json
+            from google.oauth2 import service_account
+            info = json.loads(service_account_json)
+            credentials = service_account.Credentials.from_service_account_info(info)
+            # Define as credenciais globalmente para o cliente usar
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS_DATA"] = service_account_json # Para debug/referência interna se necessário
+            return info.get("project_id"), credentials
+        except Exception as e:
+            print(f"Erro ao carregar GCP_SERVICE_ACCOUNT_JSON: {e}")
+
+    # 2. Caso padrão: Application Default Credentials (ADC)
     try:
-        _, project_id = google.auth.default()
-        return project_id
+        credentials, project_id = google.auth.default()
+        return project_id, credentials
     except Exception as e:
         print(f"Aviso: Não foi possível carregar as credenciais GCP padrão: {e}")
-        return None
+        return None, None
 
 
-PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT") or get_gcp_project_id()
+# Inicializa as credenciais uma vez
+PROJECT_ID, GCP_CREDENTIALS = get_gcp_project_id()
+
+
+def get_translate_client():
+    """Retorna o cliente de tradução usando as credenciais carregadas."""
+    if GCP_CREDENTIALS:
+        return translate.TranslationServiceClient(credentials=GCP_CREDENTIALS)
+    return translate.TranslationServiceClient()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -131,7 +154,7 @@ def call_gcp_translate_document(file_bytes: bytes, project_id: str) -> bytes:
     Faz uma chamada à API v3 de Document Translation do Google Cloud.
     Passa os bytes diretamente (sem precisar de GCS bucket).
     """
-    client = translate.TranslationServiceClient()
+    client = get_translate_client()
     parent = f"projects/{project_id}/locations/global"
 
     document_input_config = translate.DocumentInputConfig(
