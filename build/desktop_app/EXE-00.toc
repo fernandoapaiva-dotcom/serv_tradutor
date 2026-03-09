@@ -71,7 +71,7 @@
  [],
  False,
  False,
- 1773075612,
+ 1773076181,
  [('runw.exe',
    'c:\\Antigravity\\tradutor_pdf\\.venv\\Lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit-intel\\runw.exe',
    'EXECUTABLE')],

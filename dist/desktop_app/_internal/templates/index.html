@@ -411,14 +411,28 @@
                     if (match?.[1]) finalName = match[1];
                 }
 
-                // Download automático
                 const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = finalName; a.style.display = 'none';
-                document.body.appendChild(a);
-                a.click();
-                URL.revokeObjectURL(url);
+
+                // SE ESTIVER NO DESKTOP (pywebview)
+                if (window.pywebview && window.pywebview.api) {
+                    const reader = new FileReader();
+                    reader.onloadend = async () => {
+                        const base64data = reader.result.split(',')[1];
+                        const success = await window.pywebview.api.save_and_open_pdf(base64data, finalName);
+                        if (!success) {
+                            alert('Erro ao abrir o arquivo no Desktop. Tente o download manual.');
+                        }
+                    };
+                    reader.readAsDataURL(blob);
+                } else {
+                    // Download automático padrão do navegador
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = finalName; a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
 
             } catch (err) {
                 console.error(err);
