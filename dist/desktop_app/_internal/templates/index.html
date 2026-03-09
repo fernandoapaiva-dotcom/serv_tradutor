@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servsolda - Tradutor de Documentos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --green-light: #2e8b3a;
+            --green-dark: #0d4a1e;
+            --green-mid: #1a6629;
+            --green-glow: rgba(46, 139, 58, 0.25);
+            --bg: #f4f7f5;
+            --card-bg: #ffffff;
+            --text-main: #1a2e1e;
+            --text-sub: #4a6651;
+            --border: #c8dece;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        /* ───── Header com Logo ───── */
+        .logo-wrap {
+            margin-bottom: 28px;
+            text-align: center;
+        }
+
+        .logo-wrap img {
+            max-width: 260px;
+            width: 100%;
+            height: auto;
+            filter: drop-shadow(0 4px 16px rgba(13, 74, 30, 0.18));
+            transition: transform 0.3s ease;
+        }
+
+        .logo-wrap img:hover {
+            transform: scale(1.03);
+        }
+
+        /* ───── Card Principal ───── */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 8px 40px rgba(13, 74, 30, 0.10),
+                0 2px 8px rgba(13, 74, 30, 0.06);
+            padding: 40px 36px 36px;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--green-dark);
+            margin-bottom: 6px;
+            letter-spacing: -0.3px;
+        }
+
+        .card-sub {
+            font-size: 0.88rem;
+            color: var(--text-sub);
+            margin-bottom: 28px;
+        }
+
+        /* ───── Área de Upload ───── */
+        .upload-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed var(--green-light);
+            background: linear-gradient(135deg, #f0f8f2 0%, #e8f5ec 100%);
+            border-radius: 14px;
+            padding: 32px 20px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            margin-bottom: 24px;
+            width: 100%;
+        }
+
+        .upload-area:hover {
+            border-color: var(--green-dark);
+            background: linear-gradient(135deg, #e5f4e9 0%, #d8eddd 100%);
+            box-shadow: 0 0 0 4px var(--green-glow);
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--green-dark);
+            box-shadow: 0 0 0 6px var(--green-glow);
+            transform: scale(1.01);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--green-light), var(--green-dark));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+            box-shadow: 0 4px 14px var(--green-glow);
+        }
+
+        .upload-icon svg {
+            color: white;
+        }
+
+        .upload-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--green-dark);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .upload-hint {
+            font-size: 0.78rem;
+            color: var(--text-sub);
+        }
+
+        /* ───── Nome do Arquivo Selecionado ───── */
+        .file-badge {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: #e8f5ec;
+            border: 1px solid #b5d9be;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: var(--green-dark);
+            font-weight: 500;
+            text-align: left;
+            word-break: break-all;
+        }
+
+        .file-badge.visible {
+            display: flex;
+        }
+
+        .file-badge svg {
+            flex-shrink: 0;
+            color: var(--green-light);
+        }
+
+        /* ───── Botão Traduzir ───── */
+        .btn-translate {
+            display: block;
+            width: 100%;
+            padding: 18px 24px;
+            background: linear-gradient(135deg, var(--green-light) 0%, var(--green-dark) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 18px var(--green-glow);
+            position: relative;
+            overflow: hidden;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .btn-translate::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+
+        .btn-translate:hover:not(:disabled)::before {
+            opacity: 1;
+        }
+
+        .btn-translate:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 26px rgba(13, 74, 30, 0.35);
+        }
+
+        .btn-translate:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-translate:disabled {
+            background: #c5d9c9;
+            color: #8aab90;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* ───── Loading ───── */
+        .loading-box {
+            display: none;
+            margin-top: 22px;
+            background: linear-gradient(135deg, #f0f8f2, #e3f2e6);
+            border: 1px solid #b5d9be;
+            border-radius: 12px;
+            padding: 18px 20px;
+            align-items: center;
+            gap: 14px;
+            text-align: left;
+        }
+
+        .loading-box.visible {
+            display: flex;
+        }
+
+        .spinner {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border: 3px solid rgba(46, 139, 58, 0.2);
+            border-left-color: var(--green-light);
+            border-radius: 50%;
+            animation: spin 0.85s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text strong {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--green-dark);
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .loading-text span {
+            font-size: 0.78rem;
+            color: var(--text-sub);
+        }
+
+        /* ───── Footer ───── */
+        .footer {
+            margin-top: 22px;
+            font-size: 0.75rem;
+            color: #9ab5a0;
+            text-align: center;
+        }
+
+        .footer strong {
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Logo centralizada no topo -->
+    <div class="logo-wrap">
+        <img src="/static/logo.png" alt="Servsolda Comercial LTDA">
+    </div>
+
+    <!-- Card principal -->
+    <div class="card">
+        <h1 class="card-title">Tradutor de Documentos</h1>
+        <p class="card-sub">Converta PDFs técnicos para <strong>Português (pt-BR)</strong> mantendo o layout e as
+            figuras originais.</p>
+
+        <!-- Área de upload com suporte a drag & drop -->
+        <label class="upload-area" for="pdf-upload" id="drop-zone">
+            <div class="upload-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+            </div>
+            <span class="upload-label">Clique para selecionar o PDF</span>
+            <span class="upload-hint">Ou arraste e solte aqui &bull; Máx. 20 MB</span>
+        </label>
+        <input id="pdf-upload" type="file" accept="application/pdf">
+
+        <!-- Badge com nome do arquivo selecionado -->
+        <div class="file-badge" id="file-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <span id="file-name-text">—</span>
+        </div>
+
+        <button class="btn-translate" id="translate-btn" disabled>
+            🌐&nbsp; Traduzir para Português (pt-BR)
+        </button>
+
+        <!-- Spinner de Carregamento -->
+        <div class="loading-box" id="loading-box">
+            <div class="spinner"></div>
+            <div class="loading-text">
+                <strong>Processando nas nuvens…</strong>
+                <span>A tradução está sendo feita pelo Google Cloud. Aguarde alguns instantes.</span>
+            </div>
+        </div>
+    </div>
+
+    <p class="footer">Desenvolvido por <strong>Fernando_M_Aragao</strong> &amp; Google Cloud Translation API</p>
+
+    <script>
+        const fileInput = document.getElementById('pdf-upload');
+        const dropZone = document.getElementById('drop-zone');
+        const fileBadge = document.getElementById('file-badge');
+        const fileNameTxt = document.getElementById('file-name-text');
+        const translateBtn = document.getElementById('translate-btn');
+        const loadingBox = document.getElementById('loading-box');
+
+        function handleFile(file) {
+            if (!file || file.type !== 'application/pdf') {
+                alert('Por favor, selecione um arquivo PDF válido.');
+                return;
+            }
+            if (file.size > 20 * 1024 * 1024) {
+                alert('O arquivo é maior que 20 MB. Escolha um PDF menor.');
+                translateBtn.disabled = true;
+                fileBadge.classList.remove('visible');
+                return;
+            }
+            fileNameTxt.textContent = file.name;
+            fileBadge.classList.add('visible');
+            translateBtn.disabled = false;
+        }
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
+        });
+
+        // Drag & Drop
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                // Sincroniza com o input para o fetch funcionar
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileInput.files = dt.files;
+                handleFile(file);
+            }
+        });
+
+        translateBtn.addEventListener('click', async () => {
+            if (fileInput.files.length === 0) return;
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // UI → estado de carregamento
+            translateBtn.style.display = 'none';
+            loadingBox.classList.add('visible');
+            fileInput.disabled = true;
+            dropZone.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch('/translate', { method: 'POST', body: formData });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Erro desconhecido no servidor.');
+                }
+
+                // Determina o nome do arquivo de saída
+                let finalName = file.name.replace(/\.[^/.]+$/, '') + '_ptBR.pdf';
+                const disposition = response.headers.get('Content-Disposition');
+                if (disposition) {
+                    const match = /filename="([^"]*)"/.exec(disposition);
+                    if (match?.[1]) finalName = match[1];
+                }
+
+                // Download automático
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = finalName; a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+
+            } catch (err) {
+                console.error(err);
+                alert('Não foi possível traduzir o arquivo:\n' + err.message);
+            } finally {
+                translateBtn.style.display = 'block';
+                loadingBox.classList.remove('visible');
+                fileInput.disabled = false;
+                dropZone.style.pointerEvents = 'auto';
+            }
+        });
+    </script>
+
+</body>
+
+</html>
