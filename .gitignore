@@ -13,4 +13,5 @@ Thumbs.db
 
 # GCP and Secrets
 *.json
+!static/manifest.json
 .gcloud/
