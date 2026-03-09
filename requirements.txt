@@ -5,5 +5,3 @@ python-multipart
 google-cloud-translate
 google-auth
 pypdf
-pywebview
-pyinstaller
