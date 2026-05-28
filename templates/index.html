@@ -488,7 +488,7 @@
             // UI → estado de carregamento
             translateBtn.style.display = 'none';
             loadingBox.classList.add('visible');
-            fileInput.disabled = true;
+            // fileInput.disabled = true; // Removido para não revogar o acesso ao arquivo no JS
             dropZone.style.pointerEvents = 'none';
 
             try {
@@ -525,7 +525,7 @@
                     const chunk = file.slice(start, end);
                     
                     const chunkFormData = new FormData();
-                    chunkFormData.append('file', chunk);
+                    chunkFormData.append('file', chunk, file.name);
                     
                     const prog = Math.round((sentBytes / file.size) * 100);
                     loadingTitle.innerText = `Enviando arquivo... ${prog}%`;
