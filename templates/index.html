@@ -495,7 +495,7 @@
                 const response = await fetch('/translate', { method: 'POST', body: formData });
 
                 if (!response.ok) {
-                    const err = await response.json();
+                    const err = await response.json().catch(() => ({}));
                     if (response.status === 401 || err.detail === "AUTH_REQUIRED") {
                         document.getElementById('auth-banner').classList.add('visible');
                         throw new Error("Sua conta Google precisa de reconexão.");
@@ -506,15 +506,40 @@
                 // Esconde banner se funcionar
                 document.getElementById('auth-banner').classList.remove('visible');
 
-                // Determina o nome do arquivo de saída
-                let finalName = file.name.replace(/\.[^/.]+$/, '') + '_ptBR.pdf';
-                const disposition = response.headers.get('Content-Disposition');
-                if (disposition) {
-                    const match = /filename="([^"]*)"/.exec(disposition);
-                    if (match?.[1]) finalName = match[1];
+                const jobData = await response.json();
+                const jobId = jobData.job_id;
+                const machineId = jobData.machine_id;
+
+                // Loop de Polling
+                while (true) {
+                    await new Promise(r => setTimeout(r, 3000)); // Espera 3 segundos
+                    
+                    const headers = {};
+                    if (machineId) {
+                        headers['fly-force-instance-id'] = machineId;
+                    }
+
+                    const statusRes = await fetch(`/translate/status/${jobId}`, { headers });
+                    if (!statusRes.ok) throw new Error("Falha ao checar status da tradução.");
+                    
+                    const statusData = await statusRes.json();
+                    if (statusData.status === 'error') {
+                        throw new Error("Erro na tradução: " + statusData.error);
+                    }
+                    if (statusData.status === 'done') {
+                        break;
+                    }
                 }
 
-                const blob = await response.blob();
+                // Baixar o arquivo pronto
+                let finalName = file.name.replace(/\.[^/.]+$/, '') + '_ptBR.pdf';
+                const headers = {};
+                if (machineId) headers['fly-force-instance-id'] = machineId;
+
+                const downloadRes = await fetch(`/translate/download/${jobId}`, { headers });
+                if (!downloadRes.ok) throw new Error("Falha ao baixar o PDF final.");
+
+                const blob = await downloadRes.blob();
 
                 // SE ESTIVER NO DESKTOP (pywebview)
                 if (window.pywebview && window.pywebview.api) {

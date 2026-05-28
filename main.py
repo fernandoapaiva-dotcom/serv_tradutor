@@ -13,6 +13,11 @@ from typing import Optional
 
 import sys
 import subprocess
+import uuid
+import asyncio
+
+translation_jobs = {}
+
 
 def get_base_path():
     """Retorna o caminho base correto para desenvolvimento ou executável (PyInstaller)"""
@@ -194,18 +199,47 @@ async def translate_pdf_endpoint(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="O arquivo excede o tamanho máximo de 100MB.")
 
     try:
-        from starlette.concurrency import run_in_threadpool
-        translated_bytes = await run_in_threadpool(translate_pdf_in_chunks, file_bytes, project_id)
+        job_id = str(uuid.uuid4())
+        original_name = file.filename.rsplit('.', 1)[0]
+        translation_jobs[job_id] = {"status": "processing", "result": None, "error": None, "original_name": original_name}
+        
+        asyncio.create_task(background_translate(job_id, file_bytes, project_id))
+        
+        return {"job_id": job_id, "machine_id": os.environ.get("FLY_MACHINE_ID", "")}
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Erro na API GCP: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
-    original_name = file.filename.rsplit('.', 1)[0]
-    new_filename = f"{original_name}_ptBR.pdf"
+async def background_translate(job_id: str, file_bytes: bytes, project_id: str):
+    try:
+        from starlette.concurrency import run_in_threadpool
+        translated_bytes = await run_in_threadpool(translate_pdf_in_chunks, file_bytes, project_id)
+        translation_jobs[job_id]["result"] = translated_bytes
+        translation_jobs[job_id]["status"] = "done"
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        translation_jobs[job_id]["status"] = "error"
+        translation_jobs[job_id]["error"] = str(e)
 
+@app.get("/translate/status/{job_id}")
+async def get_translate_status(job_id: str):
+    job = translation_jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job não encontrado nesta máquina.")
+    return {"status": job["status"], "error": job.get("error")}
+
+@app.get("/translate/download/{job_id}")
+async def download_translated_pdf(job_id: str):
+    job = translation_jobs.get(job_id)
+    if not job or job["status"] != "done":
+        raise HTTPException(status_code=400, detail="Job não concluído ou não encontrado.")
+    
+    new_filename = f"{job['original_name']}_ptBR.pdf"
+    
     return Response(
-        content=translated_bytes,
+        content=job["result"],
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{new_filename}"'}
     )
