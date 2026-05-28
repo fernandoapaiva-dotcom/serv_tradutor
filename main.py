@@ -323,12 +323,19 @@ def translate_pdf_in_chunks(pdf_bytes: bytes, project_id: str) -> bytes:
     # PDF grande (em páginas ou potencialmente em bytes): divide dinamicamente
     print(f"⚙ Verificando limites. Dividindo dinamicamente...")
     chunks = split_pdf_by_size_and_pages(pdf_bytes)
+    print(f"⚙ Dividido dinamicamente em {len(chunks)} chunks...")
+    
+    import concurrent.futures
     translated_chunks = []
+    
+    print(f"🚀 Iniciando tradução paralela (max 5 chunks simultâneos)...")
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        # Envia todas as tarefas para a thread pool e mantém a ordem
+        futures = [executor.submit(call_gcp_translate_document, chunk, project_id) for chunk in chunks]
+        
+        for i, future in enumerate(futures, 1):
+            translated_chunks.append(future.result())
+            print(f"✅ Chunk {i}/{len(chunks)} concluído!")
 
-    for i, chunk in enumerate(chunks, 1):
-        print(f"🌐 Traduzindo chunk {i}/{len(chunks)}...")
-        translated_chunk = call_gcp_translate_document(chunk, project_id)
-        translated_chunks.append(translated_chunk)
-
-    print("✅ Todos os chunks traduzidos! Unindo PDF final...")
+    print("🎉 Todos os chunks traduzidos! Unindo PDF final...")
     return merge_pdf_bytes(translated_chunks)
