@@ -444,8 +444,14 @@
         const loadingBox = document.getElementById('loading-box');
 
         function handleFile(file) {
+            fetch('/log', { method: 'POST', body: JSON.stringify({ msg: 'file_selected', name: file ? file.name : 'null', size: file ? file.size : -1 }) }).catch(() => {});
+            
             if (!file || file.type !== 'application/pdf') {
                 alert('Por favor, selecione um arquivo PDF válido.');
+                return;
+            }
+            if (file.size === 0) {
+                alert('O arquivo selecionado parece estar vazio (0 bytes). Se você arrastou o PDF de dentro de um arquivo ZIP, pasta compactada ou de um email, extraia/salve o arquivo em uma pasta normal (como Downloads ou Documentos) primeiro e tente novamente.');
                 return;
             }
             if (file.size > 100 * 1024 * 1024) {

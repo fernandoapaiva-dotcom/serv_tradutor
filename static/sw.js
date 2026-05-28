@@ -1,6 +1,6 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open('servsolda-v7').then((cache) => cache.addAll([
+    caches.open('servsolda-v8').then((cache) => cache.addAll([
       '/',
       '/static/pwa-icon.png?v=6',
       '/static/manifest_servsolda.json?v=6'
@@ -12,7 +12,7 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
-        if (key !== 'servsolda-v7') {
+        if (key !== 'servsolda-v8') {
           return caches.delete(key);
         }
       }));
