@@ -194,7 +194,8 @@ async def translate_pdf_endpoint(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="O arquivo excede o tamanho máximo de 100MB.")
 
     try:
-        translated_bytes = translate_pdf_in_chunks(file_bytes, project_id)
+        from starlette.concurrency import run_in_threadpool
+        translated_bytes = await run_in_threadpool(translate_pdf_in_chunks, file_bytes, project_id)
     except Exception as e:
         import traceback
         traceback.print_exc()
