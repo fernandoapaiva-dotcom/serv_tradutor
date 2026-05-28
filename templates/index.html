@@ -427,8 +427,8 @@
         <div class="loading-box" id="loading-box">
             <div class="spinner"></div>
             <div class="loading-text">
-                <strong>Processando nas nuvens…</strong>
-                <span>A tradução está sendo feita pelo Google Cloud. Aguarde alguns instantes.</span>
+                <strong id="loading-title">Processando nas nuvens…</strong>
+                <span id="loading-desc">A tradução está sendo feita pelo Google Cloud. Aguarde alguns instantes.</span>
             </div>
         </div>
     </div>
@@ -492,21 +492,76 @@
             dropZone.style.pointerEvents = 'none';
 
             try {
-                const response = await fetch('/translate', { method: 'POST', body: formData });
+                const loadingTitle = document.getElementById('loading-title');
+                const loadingDesc = document.getElementById('loading-desc');
+                
+                // 1. Iniciar upload
+                loadingTitle.innerText = "Iniciando upload...";
+                loadingDesc.innerText = "Preparando conexão segura.";
+                const startRes = await fetch('/upload/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: file.name })
+                });
+                
+                if (!startRes.ok) throw new Error("Falha ao iniciar upload.");
+                const startData = await startRes.json();
+                const upload_id = startData.upload_id;
+                const uploadMachineId = startData.machine_id;
+                
+                const uploadHeaders = {};
+                if (uploadMachineId) {
+                    uploadHeaders['fly-force-instance-id'] = uploadMachineId;
+                }
+                
+                // 2. Fatiar e enviar
+                const CHUNK_SIZE = 1024 * 1024; // 1 MB
+                const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+                let sentBytes = 0;
+                
+                for (let i = 0; i < totalChunks; i++) {
+                    const start = i * CHUNK_SIZE;
+                    const end = Math.min(start + CHUNK_SIZE, file.size);
+                    const chunk = file.slice(start, end);
+                    
+                    const chunkFormData = new FormData();
+                    chunkFormData.append('file', chunk);
+                    
+                    const prog = Math.round((sentBytes / file.size) * 100);
+                    loadingTitle.innerText = `Enviando arquivo... ${prog}%`;
+                    loadingDesc.innerText = `Enviando parte ${i + 1} de ${totalChunks}`;
+                    
+                    const chunkRes = await fetch(`/upload/chunk/${upload_id}`, {
+                        method: 'POST',
+                        headers: uploadHeaders,
+                        body: chunkFormData
+                    });
+                    
+                    if (!chunkRes.ok) throw new Error(`Falha no upload da parte ${i + 1}.`);
+                    sentBytes += (end - start);
+                }
+                
+                // 3. Iniciar tradução
+                loadingTitle.innerText = "Processando nas nuvens…";
+                loadingDesc.innerText = "A tradução está sendo feita pelo Google Cloud. Aguarde alguns instantes.";
+                
+                const translateRes = await fetch(`/translate/start/${upload_id}`, { 
+                    method: 'POST',
+                    headers: uploadHeaders
+                });
 
-                if (!response.ok) {
-                    const err = await response.json().catch(() => ({}));
-                    if (response.status === 401 || err.detail === "AUTH_REQUIRED") {
+                if (!translateRes.ok) {
+                    const err = await translateRes.json().catch(() => ({}));
+                    if (translateRes.status === 401 || err.detail === "AUTH_REQUIRED") {
                         document.getElementById('auth-banner').classList.add('visible');
                         throw new Error("Sua conta Google precisa de reconexão.");
                     }
                     throw new Error(err.detail || 'Erro desconhecido no servidor.');
                 }
 
-                // Esconde banner se funcionar
                 document.getElementById('auth-banner').classList.remove('visible');
 
-                const jobData = await response.json();
+                const jobData = await translateRes.json();
                 const jobId = jobData.job_id;
                 const machineId = jobData.machine_id;
 

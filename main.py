@@ -17,7 +17,7 @@ import uuid
 import asyncio
 
 translation_jobs = {}
-
+active_uploads = {}
 
 def get_base_path():
     """Retorna o caminho base correto para desenvolvimento ou executável (PyInstaller)"""
@@ -174,6 +174,63 @@ async def get_index(request: Request, sso_token: Optional[str] = None):
 async def favicon():
     from fastapi.responses import FileResponse
     return FileResponse(os.path.join(BASE_PATH, "static", "pwa-icon.png"))
+
+
+@app.post("/upload/start")
+async def start_upload(request: Request):
+    data = await request.json()
+    filename = data.get("filename", "document.pdf")
+    upload_id = str(uuid.uuid4())
+    active_uploads[upload_id] = {
+        "filename": filename,
+        "bytes": bytearray()
+    }
+    machine_id = os.environ.get("FLY_MACHINE_ID", "")
+    return {"upload_id": upload_id, "machine_id": machine_id}
+
+
+@app.post("/upload/chunk/{upload_id}")
+async def upload_chunk(upload_id: str, file: UploadFile = File(...)):
+    if upload_id not in active_uploads:
+        raise HTTPException(status_code=404, detail="Upload ID não encontrado")
+    
+    chunk_bytes = await file.read()
+    active_uploads[upload_id]["bytes"].extend(chunk_bytes)
+    return {"status": "ok", "received_bytes": len(chunk_bytes)}
+
+
+@app.post("/translate/start/{upload_id}")
+async def start_translation_from_upload(upload_id: str):
+    if upload_id not in active_uploads:
+        raise HTTPException(status_code=404, detail="Upload ID não encontrado")
+    
+    upload_data = active_uploads.pop(upload_id)
+    file_bytes = bytes(upload_data["bytes"])
+    filename = upload_data["filename"]
+    
+    project_id, _ = get_gcp_project_id()
+
+    if not project_id:
+        raise HTTPException(
+            status_code=401,
+            detail="AUTH_REQUIRED"
+        )
+
+    if len(file_bytes) > 104857600:
+        raise HTTPException(status_code=400, detail="O arquivo excede o tamanho máximo de 100MB.")
+
+    try:
+        job_id = str(uuid.uuid4())
+        original_name = filename.rsplit('.', 1)[0]
+        translation_jobs[job_id] = {"status": "processing", "result": None, "error": None, "original_name": original_name}
+        
+        asyncio.create_task(background_translate(job_id, file_bytes, project_id))
+        
+        return {"job_id": job_id, "machine_id": os.environ.get("FLY_MACHINE_ID", "")}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 
 @app.post("/translate")
