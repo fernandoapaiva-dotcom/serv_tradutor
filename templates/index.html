@@ -291,6 +291,67 @@
         .footer strong {
             color: var(--text-sub);
         }
+
+        /* ───── Auth Error Banner ───── */
+        .auth-error-banner {
+            display: none;
+            background: #fff5f5;
+            border: 1.5px solid #feb2b2;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: left;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-error-banner.visible {
+            display: block;
+        }
+
+        .auth-error-title {
+            color: #c53030;
+            font-size: 0.9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .auth-error-text {
+            color: #742a2a;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            margin-bottom: 12px;
+        }
+
+        .btn-reauth {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #3182ce;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-reauth:hover {
+            background: #2b6cb0;
+        }
+
+        .btn-reauth:active {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 
@@ -301,11 +362,36 @@
         <img src="/static/logo.png" alt="Servsolda Comercial LTDA">
     </div>
 
+    {% if user_email %}
+    <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px; background: white; padding: 10px 20px; border-radius: 50px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+        <div style="width: 32px; height: 32px; background: var(--green-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.8rem;">
+            {{ user_email[0] | upper }}
+        </div>
+        <span style="font-size: 0.85rem; color: var(--text-main); font-weight: 500;">{{ user_email }}</span>
+        <a href="#" onclick="document.cookie='sso_session=; Max-Age=0; path=/;'; location.reload();" style="font-size: 0.75rem; color: #e53e3e; text-decoration: none; font-weight: 600; margin-left: 10px;">Sair</a>
+    </div>
+    {% endif %}
+
     <!-- Card principal -->
     <div class="card">
         <h1 class="card-title">Tradutor de Documentos</h1>
         <p class="card-sub">Converta PDFs técnicos para <strong>Português (pt-BR)</strong> mantendo o layout e as
             figuras originais.</p>
+
+        <!-- Banner de Erro de Autenticação (Escondido por padrão) -->
+        <div class="auth-error-banner" id="auth-banner">
+            <div class="auth-error-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                Google Desconectado
+            </div>
+            <div class="auth-error-text">
+                O acesso ao tradutor expirou. Clique no botão abaixo para reconectar sua conta Google e continuar.
+            </div>
+            <button class="btn-reauth" id="reauth-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14L21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+                Reconectar Agora
+            </button>
+        </div>
 
         <!-- Área de upload com suporte a drag & drop -->
         <label class="upload-area" for="pdf-upload" id="drop-zone">
@@ -319,7 +405,7 @@
                 </svg>
             </div>
             <span class="upload-label">Clique para selecionar o PDF</span>
-            <span class="upload-hint">Ou arraste e solte aqui &bull; Máx. 20 MB</span>
+            <span class="upload-hint">Ou arraste e solte aqui &bull; Máx. 100 MB</span>
         </label>
         <input id="pdf-upload" type="file" accept="application/pdf">
 
@@ -362,8 +448,8 @@
                 alert('Por favor, selecione um arquivo PDF válido.');
                 return;
             }
-            if (file.size > 20 * 1024 * 1024) {
-                alert('O arquivo é maior que 20 MB. Escolha um PDF menor.');
+            if (file.size > 100 * 1024 * 1024) {
+                alert('O arquivo é maior que 100 MB. Escolha um PDF menor ou divida-o antes de enviar.');
                 translateBtn.disabled = true;
                 fileBadge.classList.remove('visible');
                 return;
@@ -410,8 +496,15 @@
 
                 if (!response.ok) {
                     const err = await response.json();
+                    if (response.status === 401 || err.detail === "AUTH_REQUIRED") {
+                        document.getElementById('auth-banner').classList.add('visible');
+                        throw new Error("Sua conta Google precisa de reconexão.");
+                    }
                     throw new Error(err.detail || 'Erro desconhecido no servidor.');
                 }
+
+                // Esconde banner se funcionar
+                document.getElementById('auth-banner').classList.remove('visible');
 
                 // Determina o nome do arquivo de saída
                 let finalName = file.name.replace(/\.[^/.]+$/, '') + '_ptBR.pdf';
@@ -452,6 +545,40 @@
                 loadingBox.classList.remove('visible');
                 fileInput.disabled = false;
                 dropZone.style.pointerEvents = 'auto';
+            }
+        });
+
+        // Lógica de Reautenticação
+        document.getElementById('reauth-btn').addEventListener('click', async () => {
+            const reauthBtn = document.getElementById('reauth-btn');
+            const originalText = reauthBtn.innerHTML;
+            
+            try {
+                reauthBtn.innerHTML = "Processando...";
+                reauthBtn.disabled = true;
+                
+                const response = await fetch('/reauth', { method: 'POST' });
+                if (!response.ok) throw new Error("Erro ao disparar reautenticação.");
+                
+                const data = await response.json();
+                
+                if (data.status === "docker") {
+                    alert("SISTEMA VIA DOCKER:\n\nComo você está usando Docker, o botão não consegue abrir o navegador sozinho.\n\nPor favor, abra o terminal no seu Windows e digite:\ngcloud auth application-default login\n\nDepois que logar lá, o tradutor aqui voltará a funcionar automaticamente!");
+                } else {
+                    alert("Uma janela do navegador foi aberta.\n\n1. Escolha sua conta Google.\n2. Confirme o acesso.\n3. Feche o navegador e tente traduzir novamente aqui!");
+                }
+                
+                // Esconde o banner após alguns segundos
+                setTimeout(() => {
+                    document.getElementById('auth-banner').classList.remove('visible');
+                    reauthBtn.disabled = false;
+                    reauthBtn.innerHTML = originalText;
+                }, 8000);
+
+            } catch (err) {
+                alert("Erro: " + err.message);
+                reauthBtn.disabled = false;
+                reauthBtn.innerHTML = originalText;
             }
         });
     </script>

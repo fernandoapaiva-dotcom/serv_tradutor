@@ -1,0 +1,23 @@
+services:
+  tradutor-pdf:
+    build: .
+    container_name: tradutor_servsolda
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: tradutor_ngrok
+    restart: unless-stopped
+    ports:
+      - "4040:4040"
+    command:
+      - "http"
+      - "tradutor-pdf:8000"
+    env_file:
+      - .env
+    depends_on:
+      - tradutor-pdf

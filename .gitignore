@@ -11,7 +11,8 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# GCP and Secrets
+# Secrets and Config
+.env
 *.json
 !static/manifest.json
 .gcloud/
