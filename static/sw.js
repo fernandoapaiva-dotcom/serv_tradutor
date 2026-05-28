@@ -1,9 +1,9 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open('servsolda-v6').then((cache) => cache.addAll([
+    caches.open('servsolda-v7').then((cache) => cache.addAll([
       '/',
-      '/static/pwa-icon.png?v=5',
-      '/static/manifest_servsolda.json?v=5'
+      '/static/pwa-icon.png?v=6',
+      '/static/manifest_servsolda.json?v=6'
     ])).then(() => self.skipWaiting()),
   );
 });
@@ -12,7 +12,7 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keyList) => {
       return Promise.all(keyList.map((key) => {
-        if (key !== 'servsolda-v6') {
+        if (key !== 'servsolda-v7') {
           return caches.delete(key);
         }
       }));

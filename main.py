@@ -176,6 +176,12 @@ async def favicon():
     return FileResponse(os.path.join(BASE_PATH, "static", "pwa-icon.png"))
 
 
+@app.post("/log")
+async def frontend_log(request: Request):
+    data = await request.json()
+    print(f"FRONTEND LOG: {data}")
+    return {"status": "ok"}
+
 @app.post("/upload/start")
 async def start_upload(request: Request):
     data = await request.json()
@@ -200,11 +206,14 @@ async def upload_chunk(upload_id: str, file: UploadFile = File(...)):
 
 
 @app.post("/translate/start/{upload_id}")
-async def start_translation_from_upload(upload_id: str):
+async def start_translation_from_upload(upload_id: str, background_tasks: BackgroundTasks):
     if upload_id not in active_uploads:
         raise HTTPException(status_code=404, detail="Upload ID não encontrado")
-    
+        
     upload_data = active_uploads.pop(upload_id)
+    if len(upload_data["bytes"]) == 0:
+        raise HTTPException(status_code=400, detail="Nenhum dado recebido no upload (bytes = 0). O arquivo parece estar vazio ou falhou ao enviar as partes.")
+        
     file_bytes = bytes(upload_data["bytes"])
     filename = upload_data["filename"]
     

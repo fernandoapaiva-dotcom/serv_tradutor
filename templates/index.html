@@ -519,6 +519,11 @@
                 const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
                 let sentBytes = 0;
                 
+                await fetch('/log', {
+                    method: 'POST',
+                    body: JSON.stringify({ msg: 'chunking', size: file.size, chunks: totalChunks, name: file.name, type: file.type })
+                }).catch(() => {});
+                
                 for (let i = 0; i < totalChunks; i++) {
                     const start = i * CHUNK_SIZE;
                     const end = Math.min(start + CHUNK_SIZE, file.size);
