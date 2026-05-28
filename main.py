@@ -150,7 +150,7 @@ async def get_index(request: Request, sso_token: Optional[str] = None):
                 supabase.table("sso_tokens").update({"used_at": used_at}).eq("id", sso_token).execute()
                 
                 # Gera a resposta com um cookie de sessão simples
-                response = templates.TemplateResponse("index.html", {"request": request, "user_email": user_email})
+                response = templates.TemplateResponse(request=request, name="index.html", context={"user_email": user_email})
                 response.set_cookie(key="sso_session", value=user_email, max_age=3600*24) # 24 horas
                 return response
         except Exception as e:
@@ -158,7 +158,7 @@ async def get_index(request: Request, sso_token: Optional[str] = None):
 
     # Fallback padrão
     user_email = request.cookies.get("sso_session")
-    return templates.TemplateResponse("index.html", {"request": request, "user_email": user_email})
+    return templates.TemplateResponse(request=request, name="index.html", context={"user_email": user_email})
 
 
 @app.get("/favicon.ico", include_in_schema=False)
