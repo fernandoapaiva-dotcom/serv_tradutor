@@ -75,6 +75,10 @@ def get_gcp_project_id():
     service_account_json = os.environ.get("GCP_SERVICE_ACCOUNT_JSON")
     if service_account_json:
         try:
+            # Remover UTF-8 BOM se existir (comum no Windows/PowerShell)
+            if service_account_json.startswith('\ufeff'):
+                service_account_json = service_account_json[1:]
+            
             info = json.loads(service_account_json)
             scopes = ["https://www.googleapis.com/auth/cloud-translation"]
             credentials = service_account.Credentials.from_service_account_info(info, scopes=scopes)
