@@ -1,0 +1,17 @@
+app = "tradutor-pdf"
+primary_region = "gru" # gru (São Paulo) ou mia (Miami), caso dê algum erro de região na hora do launch
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Variáveis que não são secretas podem ficar aqui, se quiser
+  # Exemplo: PORT = "8000"
+
+[http_service]
+  internal_port = 8005
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
